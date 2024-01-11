@@ -1,12 +1,14 @@
 import googleapiclient.discovery
 import pandas as pd
+from textblob import TextBlob
+from dataclasses import dataclass
 
-api_service_name = "youtube"
-api_version = "v3"
-DEVELOPER_KEY = "AIzaSyATKUIZDk1xKyZ5Es3fYXKAdWY8z-y3Ilk"
+def determineScore(text: str):
 
-youtube = googleapiclient.discovery.build(
-    api_service_name, api_version, developerKey=DEVELOPER_KEY)
+    sentiment = TextBlob(text).sentiment.polarity
+
+    return sentiment
+
 
 def makeComments(video_id, maxPages):
 
@@ -19,7 +21,7 @@ def makeComments(video_id, maxPages):
         request = youtube.commentThreads().list(
             part="snippet",
             videoId=video_id,
-            maxResults=100,
+            maxResults=20,
             pageToken=next_page_token,
             order="relevance"
         )
@@ -44,12 +46,29 @@ def makeComments(video_id, maxPages):
     
     return commentList
 
-video_id = "VGkmXzpTyfY"
+
+api_service_name = "youtube"
+api_version = "v3"
+DEVELOPER_KEY = "AIzaSyATKUIZDk1xKyZ5Es3fYXKAdWY8z-y3Ilk"
+
+youtube = googleapiclient.discovery.build(
+    api_service_name, api_version, developerKey=DEVELOPER_KEY)
+
+video_id = "XqZsoesa55w"
 maxPages = 100
 comments = makeComments(video_id, maxPages)
 
-        
-df = pd.DataFrame(comments, columns=['author', 'published_at', 'updated_at', 'like_count', 'text'])
-df_sorted = df.sort_values(by='like_count', ascending=False)
 
-print(df.head(100))
+df = pd.DataFrame(comments, columns=['author', 'published_at', 'updated_at', 'like_count', 'text'])
+
+
+numComments = 200
+
+first_row = (df.loc[:numComments, 'text']).tolist()
+
+totalScore = 0
+
+for i in first_row:
+    totalScore += determineScore(i)
+
+print(totalScore/numComments)
